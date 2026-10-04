@@ -83,15 +83,21 @@ async function withRetry<T>(
       return await fn();
     } catch (err: unknown) {
       const errStr = String(err).toLowerCase();
-      // Fail fast on fatal 404 / model not found to trigger immediate model fallback
-      if (errStr.includes("404") || errStr.includes("not found")) {
+      // Fail fast on fatal 404, 503 high demand, or unavailable to trigger immediate model fallback
+      if (
+        errStr.includes("404") ||
+        errStr.includes("not found") ||
+        errStr.includes("503") ||
+        errStr.includes("high demand") ||
+        errStr.includes("unavailable")
+      ) {
         throw err;
       }
       attempt++;
       if (attempt > retries) {
         throw err;
       }
-      // Exponential backoff with slight jitter for transient issues (network, 503, 429)
+      // Exponential backoff with slight jitter for transient issues (network, rate limits)
       const wait = delayMs * Math.pow(2, attempt - 1) + Math.random() * 200;
       await new Promise((resolve) => setTimeout(resolve, wait));
     }
@@ -144,18 +150,13 @@ export async function analyzeDecision(request: AnalyzeRequest): Promise<Analysis
     return text;
   }
 
-  // Attempt with primary model, fallback on model-not-found or 429
+  // Attempt with primary model, fallback automatically on ANY error (503 high demand, 429 quota, etc.)
   let rawJsonText: string;
   try {
     rawJsonText = await withRetry(() => callModel(activeModel, prompt));
   } catch (err: unknown) {
-    const errorString = String(err).toLowerCase();
-    if (
-      errorString.includes("404") ||
-      errorString.includes("not found") ||
-      errorString.includes("quota") ||
-      errorString.includes("429")
-    ) {
+    if (activeModel !== getFallbackModel()) {
+      console.warn(`Primary model (${activeModel}) failed, switching to fallback model (${getFallbackModel()}):`, err instanceof Error ? err.message : String(err));
       activeModel = getFallbackModel();
       rawJsonText = await withRetry(() => callModel(activeModel, prompt));
     } else {
@@ -230,12 +231,8 @@ export async function followupReflection(request: FollowupRequest): Promise<Foll
   try {
     rawJsonText = await withRetry(() => callModel(activeModel));
   } catch (err: unknown) {
-    const errorString = String(err).toLowerCase();
-    if (
-      errorString.includes("404") ||
-      errorString.includes("not found") ||
-      errorString.includes("quota")
-    ) {
+    if (activeModel !== getFallbackModel()) {
+      console.warn(`Primary model (${activeModel}) failed in followup, switching to fallback (${getFallbackModel()}):`, err instanceof Error ? err.message : String(err));
       activeModel = getFallbackModel();
       rawJsonText = await withRetry(() => callModel(activeModel));
     } else {
