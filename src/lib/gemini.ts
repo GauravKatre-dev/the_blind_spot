@@ -99,6 +99,16 @@ async function withRetry<T>(
   throw new Error("Max retries exceeded.");
 }
 
+function cleanJsonText(raw: string): string {
+  let cleaned = raw.trim();
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
+  } else if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "");
+  }
+  return cleaned.trim();
+}
+
 /**
  * Analyzes a decision context using Gemini with structured output and guardrail validation.
  *
@@ -155,14 +165,17 @@ export async function analyzeDecision(request: AnalyzeRequest): Promise<Analysis
 
   let parsedData: unknown;
   try {
-    parsedData = JSON.parse(rawJsonText);
-  } catch {
+    const cleanedJson = cleanJsonText(rawJsonText);
+    parsedData = JSON.parse(cleanedJson);
+  } catch (parseErr) {
+    console.error("Failed to parse Gemini JSON:", parseErr, "Raw snippet:", rawJsonText.slice(0, 200));
     throw new Error("Unable to parse structured response from Gemini.");
   }
 
   // Validate schema via Zod
   const zodResult = AnalysisResultSchema.safeParse(parsedData);
   if (!zodResult.success) {
+    console.error("Schema validation failed:", JSON.stringify(zodResult.error.issues));
     throw new Error("Response failed schema validation.");
   }
 
@@ -171,21 +184,8 @@ export async function analyzeDecision(request: AnalyzeRequest): Promise<Analysis
   // Deterministic Guardrail Check
   const guardrailCheck = checkNoVerdict(finalAnalysis);
   if (!guardrailCheck.passes) {
-    // Retry once with a stricter negative constraint appended
-    const retryPrompt = `${prompt}\n\nCRITICAL GUARDRAIL VIOLATION DETECTED: The previous attempt contained banned prescriptive phrasing (${guardrailCheck.violations[0]}). You must remove ALL recommendations, 'you should', 'I recommend', or option rankings. Provide ONLY observations and questions.`;
-    try {
-      const retryRaw = await callModel(activeModel, retryPrompt);
-      const retryParsed = JSON.parse(retryRaw);
-      const retryValidated = AnalysisResultSchema.safeParse(retryParsed);
-      if (retryValidated.success && checkNoVerdict(retryValidated.data).passes) {
-        finalAnalysis = retryValidated.data;
-      } else {
-        // Safe sanitized fallback: scrub any offending fields
-        finalAnalysis = scrubViolations(finalAnalysis);
-      }
-    } catch {
-      finalAnalysis = scrubViolations(finalAnalysis);
-    }
+    console.warn("Guardrail violation detected; scrubbing prescriptive wording:", guardrailCheck.violations[0]);
+    finalAnalysis = scrubViolations(finalAnalysis);
   }
 
   return finalAnalysis;
@@ -243,7 +243,7 @@ export async function followupReflection(request: FollowupRequest): Promise<Foll
     }
   }
 
-  const parsed = JSON.parse(rawJsonText);
+  const parsed = JSON.parse(cleanJsonText(rawJsonText));
   const validated = FollowupResultSchema.parse(parsed);
 
   const guardrailCheck = checkNoVerdict(validated);

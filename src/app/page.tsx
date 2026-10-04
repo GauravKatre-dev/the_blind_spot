@@ -56,7 +56,12 @@ export default function Home() {
         }
       }, 100);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
+      const msg =
+        err instanceof Error && err.message === "Failed to fetch"
+          ? "Network connection interrupted or request timed out. Please try again."
+          : err instanceof Error
+            ? err.message
+            : "An unexpected error occurred.";
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);

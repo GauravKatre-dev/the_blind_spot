@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (err: unknown) {
+    console.error("API /api/analyze error:", err instanceof Error ? err.stack || err.message : String(err));
     // SECURITY: Never leak API keys, system headers, or raw provider stack traces to the client
     const errorMessage =
       err instanceof Error && err.message.includes("timed out")

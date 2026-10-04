@@ -48,6 +48,10 @@ export function checkNoVerdict(data: unknown): GuardrailCheckResult {
       val.forEach((item, idx) => scan(item, `${path}[${idx}]`));
     } else if (val !== null && typeof val === "object") {
       for (const [k, v] of Object.entries(val)) {
+        // Guardrails apply to AI reasoning and guidance, not quotes of user words
+        if (["evidence_quote", "statement_a", "statement_b", "stated_reasons"].includes(k)) {
+          continue;
+        }
         scan(v, path ? `${path}.${k}` : k);
       }
     }

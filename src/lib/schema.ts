@@ -58,47 +58,57 @@ export type FollowupRequest = z.infer<typeof FollowupRequestSchema>;
 // RESPONSE SCHEMAS
 // ==========================================
 
+export const SeverityEnum = z.preprocess((val) => {
+  if (typeof val === "string") {
+    const lower = val.toLowerCase().trim();
+    if (lower.includes("high") || lower.includes("crit")) return "high";
+    if (lower.includes("low") || lower.includes("min")) return "low";
+    return "medium";
+  }
+  return "medium";
+}, z.enum(["low", "medium", "high"]));
+
 export const AssumptionSchema = z.object({
-  assumption: z.string().describe("The unstated assumption identified from the user's reasoning."),
-  why_it_matters: z.string().describe("Why this assumption creates risk or distortion in thinking."),
-  how_to_test: z.string().describe("A practical way the user could test or verify this assumption."),
+  assumption: z.string().default(""),
+  why_it_matters: z.string().default(""),
+  how_to_test: z.string().default(""),
 });
 
 export const OverlookedFactorSchema = z.object({
-  category: z.string().describe("Category e.g. Academic, Financial, Mentorship, Health, Social, Reversibility."),
-  factor: z.string().describe("The specific factor omitted from the decision context."),
-  why_it_matters: z.string().describe("The potential impact of neglecting this factor."),
-  severity: z.enum(["low", "medium", "high"]).describe("The relative potential impact of this omission."),
+  category: z.string().default("General"),
+  factor: z.string().default(""),
+  why_it_matters: z.string().default(""),
+  severity: SeverityEnum.default("medium"),
 });
 
 export const InternalConflictSchema = z.object({
-  statement_a: z.string().describe("The first priority or statement from the user."),
-  statement_b: z.string().describe("The second priority or statement that clashes with statement A."),
-  tension: z.string().describe("The specific friction or paradox between both priorities."),
+  statement_a: z.string().default(""),
+  statement_b: z.string().default(""),
+  tension: z.string().default(""),
 });
 
 export const BiasFlagSchema = z.object({
-  bias: z.string().describe("Cognitive bias name (e.g. Present Bias, Sunk Cost, Availability Heuristic)."),
-  evidence_quote: z.string().describe("Exact or near-exact quote from user input exhibiting the pattern."),
-  note: z.string().describe("Tentative observation ('this may be', 'worth checking whether')."),
+  bias: z.string().default(""),
+  evidence_quote: z.string().default(""),
+  note: z.string().default(""),
 });
 
 export const QuestionSchema = z.object({
-  question: z.string().describe("An open, non-leading inquiry designed to reveal blind spots."),
-  probes: z.array(z.string()).describe("Specific sub-questions to dig deeper."),
+  question: z.string().default(""),
+  probes: z.array(z.string()).nullish().transform((v) => v || []),
 });
 
 export const AnalysisResultSchema = z.object({
-  observation: z.string().describe("2 to 3 sentences opening observation, calm, dry-witted if Alfred, neutral if Plain."),
-  decision_summary: z.string().describe("A concise, objective recap of the decision being weighed."),
-  stated_reasons: z.array(z.string()).describe("Direct factors and justifications explicitly stated by the user."),
-  assumptions: z.array(AssumptionSchema).describe("Unstated assumptions underlying the decision."),
-  overlooked_factors: z.array(OverlookedFactorSchema).describe("Factors not mentioned that carry consequence."),
-  internal_conflicts: z.array(InternalConflictSchema).describe("Direct tensions between stated goals or statements."),
-  bias_flags: z.array(BiasFlagSchema).describe("Tentative cognitive bias observations grounded in quotes."),
-  questions: z.array(QuestionSchema).describe("3 to 5 open inquiry questions ordered by significance."),
-  missing_information: z.array(z.string()).describe("Information gaps that would be needed for a fuller picture."),
-  safety_flag: z.boolean().describe("True only if user indicates crisis, self-harm, or immediate danger."),
+  observation: z.string().default(""),
+  decision_summary: z.string().default(""),
+  stated_reasons: z.array(z.string()).nullish().transform((v) => v || []),
+  assumptions: z.array(AssumptionSchema).nullish().transform((v) => v || []),
+  overlooked_factors: z.array(OverlookedFactorSchema).nullish().transform((v) => v || []),
+  internal_conflicts: z.array(InternalConflictSchema).nullish().transform((v) => v || []),
+  bias_flags: z.array(BiasFlagSchema).nullish().transform((v) => v || []),
+  questions: z.array(QuestionSchema).nullish().transform((v) => v || []),
+  missing_information: z.array(z.string()).nullish().transform((v) => v || []),
+  safety_flag: z.boolean().nullish().transform((v) => !!v),
 });
 
 export type AnalysisResult = z.infer<typeof AnalysisResultSchema>;

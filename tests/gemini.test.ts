@@ -110,15 +110,12 @@ describe("Gemini Client & Guardrails with Mocked Upstream", () => {
       observation: "Taking everything into account, you should accept the internship.",
     };
 
-    // First call returns text with 'you should' violation
-    // Second call (retry) returns clean text
-    mockGenerateContent
-      .mockResolvedValueOnce({ text: JSON.stringify(violatingResponse) })
-      .mockResolvedValueOnce({ text: JSON.stringify(validGeminiResponse) });
+    // Call returns text with 'you should' violation
+    mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify(violatingResponse) });
 
     const result = await analyzeDecision(validRequest);
     expect(result.observation).not.toContain("you should");
-    expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
   });
 
   it("runs follow-up reflection analysis", async () => {
