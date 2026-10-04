@@ -95,7 +95,7 @@ describe("POST /api/analyze API Route", () => {
   });
 
   it("returns 500 generic error on upstream failure without leaking secrets or stack traces", async () => {
-    vi.spyOn(geminiModule, "analyzeDecision").mockRejectedValueOnce(new Error("Internal provider connection reset with key AIzaSyDUMMY"));
+    vi.spyOn(geminiModule, "analyzeDecision").mockRejectedValueOnce(new Error("Internal provider connection reset with key PROVIDER_SECRET_TOKEN"));
 
     const req = new NextRequest("http://localhost:3000/api/analyze", {
       method: "POST",
@@ -108,6 +108,6 @@ describe("POST /api/analyze API Route", () => {
 
     const data = await res.json();
     expect(data.error).toBe("An error occurred while examining your decision. Please try again in a few moments.");
-    expect(JSON.stringify(data)).not.toContain("AIzaSy");
+    expect(JSON.stringify(data)).not.toContain("PROVIDER_SECRET_TOKEN");
   });
 });
