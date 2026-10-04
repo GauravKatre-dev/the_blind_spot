@@ -2,6 +2,9 @@
 
 **Product Name:** Blind Spot  
 **Persona:** Alfred (Calm, discreet, dry-witted butler-style thinking companion - voice layer only)  
+**Live Deployed URL:** https://blind-spot-711135942629.us-central1.run.app  
+**Health Endpoint:** https://blind-spot-711135942629.us-central1.run.app/api/health (HTTP 200 OK)  
+**GitHub Repository:** https://github.com/GauravKatre-dev/the_blind_spot (Branch: main)  
 **Target:** 100/100 Evaluation across all 7 criteria  
 
 ---
