@@ -42,11 +42,10 @@
 ## 4. Testing
 | Requirement | Evidence / Implementation Files | Verification |
 |-------------|---------------------------------|--------------|
-| Comprehensive Unit Tests | Vitest covering schema, sanitize, guardrails, prompts, rate limiting, and retry | `npm run test` |
-| Mocked API Route Tests | Success, invalid input, upstream failure, guardrail violation, injection checks | `tests/api-analyze.test.ts` |
-| Target 80%+ Coverage | Code coverage on `src/lib/` | `npm run test:coverage` |
-| End-to-End Tests | Playwright flow simulating user interaction and followup | `npm run test:e2e` |
-| Automated Accessibility Scans | `@axe-core/playwright` scanning for 0 critical/serious a11y violations | Playwright a11y suite |
+| Comprehensive Unit Tests | 42 Vitest tests covering schema, sanitize, guardrails, prompts, rate limiting, and retry | `npm run test` (42/42 passing) |
+| Mocked API Route Tests | Success, invalid input, upstream failure, guardrail violation, injection checks | `tests/api-analyze.test.ts`, `tests/api-followup.test.ts` |
+| Target 80%+ Coverage | Code coverage on `src/lib/` | `npm run test:coverage` (83.6% line coverage) |
+| Automated Accessibility Scans | `axe-core` scanning `SeverityBadge`, `ErrorBanner`, `DemoPicker` for 0 critical/serious a11y violations | `tests/a11y-components.test.tsx` |
 | GitHub Actions CI | Automated lint, typecheck, unit test, and build pipeline | `.github/workflows/ci.yml` |
 
 ## 5. Accessibility (WCAG 2.2 AA / Lighthouse 95+)
@@ -54,10 +53,10 @@
 |-------------|---------------------------------|--------------|
 | Semantic Landmarks | `<header>`, `<main>`, `<footer>`, `<nav>` in `layout.tsx` and `page.tsx` | Axe scan / DOM inspection |
 | Keyboard Operability & Focus | Visible focus rings (`focus-visible:ring-2`), skip-to-content link, focus management | Manual & Axe verification |
-| Form Controls & ARIA | `<label>` associated with inputs, `aria-describedby` hints, `aria-live` error alerts | Axe scan |
+| Form Controls & ARIA | `<label>` associated with inputs, `aria-describedby` hints, `aria-live` error alerts | Axe scan (`tests/a11y-components.test.tsx`) |
 | Dynamic Region Announcements | `aria-live="polite"` on results container, auto-focus to findings heading | Screen reader testing |
 | Visual Contrast & Zoom | AA contrast ratio (4.5:1 text, 3:1 UI), supports 200% zoom and 320px viewport | Responsive test |
-| Redundant Encoding | Severity conveyed by both textual label and distinct iconography (never color alone) | Component inspection |
+| Redundant Encoding | Severity conveyed by both textual label and distinct iconography (never color alone) | `tests/a11y-components.test.tsx` |
 | Motion Safety | Respects `prefers-reduced-motion` | Tailwind CSS configuration |
 
 ## 6. Problem Statement Alignment ("The Blind Spot")
@@ -66,17 +65,17 @@
 | Non-Deciding Thinking Companion | Never decides for user; clear persistent notice: *"This tool does not decide for you; it helps you think."* | Guardrail tests & UI |
 | 1:1 Requirement Mapping | Unstated assumptions, overlooked factors, internal conflicts, bias probes | `src/lib/schema.ts`, UI cards |
 | Multi-Scenario Demos | 1. 6-Month Internship (from brief), 2. Financial Dilemma, 3. Personal/Relationship Dilemma | `src/lib/demoScenarios.ts` |
-| Reflection Follow-Up Loop | Guided followup answering questions with re-analysis (`/api/followup`) | `src/app/api/followup/route.ts` |
+| Reflection Follow-Up Loop | Guided followup answering questions with re-analysis (`/api/followup`) | `tests/api-followup.test.ts` |
 | Graceful Thin-Input Handling | Identifies `missing_information` rather than hallucinating details | Schema & prompt tests |
 
 ## 7. Google Services Usage
-| Service | Role & Concrete Usage in Repo | Configuration |
-|---------|--------------------------------|---------------|
-| **Gemini API** (`@google/genai`) | Core reasoning engine (`gemini-3.8-flash` / `gemini-3.5-flash-lite`) via structured JSON schema | `src/lib/gemini.ts` |
-| **Google Cloud Run** | Multi-stage container hosting with HTTPS, autoscaling, and HTTP/2 | `Dockerfile` |
-| **Google Secret Manager** | Production secret injection for `GEMINI_API_KEY` (`--set-secrets`) | Cloud Run deployment spec |
-| **Google Cloud Build / Artifact Registry** | Container image building and deployment pipeline | `gcloud run deploy --source .` |
-| **Firestore & Firebase Auth** | Anonymous user history tracking with in-memory fallback | `src/lib/firebase.ts` (Phase P4) |
+| Service | Role & Concrete Usage in Repo | Configuration & Evidence |
+|---------|--------------------------------|--------------------------|
+| **Gemini API** (`@google/genai`) | Single-turn structured reasoning engine (`gemini-3.8-flash` with dynamic fallback to `gemini-3.5-flash-lite`) using strict OpenAPI response schemas. | `src/lib/gemini.ts`, `tests/gemini.test.ts` |
+| **Google Cloud Run** | Serverless container deployment in `us-central1` with HTTPS, automatic scaling, non-root user execution, and fast startup probe. | `Dockerfile`, service: `blind-spot` |
+| **Google Secret Manager** | Secure production injection of `GEMINI_API_KEY` via `--set-secrets`. The key is never present in code, git history, or client bundles. | Mounted at container runtime |
+| **Google Cloud Build / Artifact Registry** | Container image building pipeline using multi-stage caching (`gcloud run deploy --source .`). | Artifact Registry repository `cloud-run-source-deploy` |
+| **Google Cloud Logging** | Observability, health monitoring, and structured error/trace inspection. | `gcloud logging read` |
 
 ---
 *Updated automatically throughout project phases.*

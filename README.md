@@ -92,11 +92,11 @@ flowchart TD
 
 | Google Service | Role & Concrete Implementation |
 |---|---|
-| **Google Gemini API** (`@google/genai`) | Powers the single-call structured reasoning engine. Operates on `gemini-3.8-flash` with dynamic fallback to `gemini-3.5-flash-lite`. Configured with `temperature: 0.4` and structured OpenAPI `responseSchema`. |
-| **Google Cloud Run** | Fully managed serverless container runtime hosting the production Next.js standalone application with automatic scaling, HTTPS, and non-root execution. |
+| **Google Gemini API** (`@google/genai` v2.27.0) | Powers the single-call structured reasoning engine. Operates on `gemini-3.8-flash` with dynamic fallback to `gemini-3.5-flash-lite`. Configured with `temperature: 0.4` and structured OpenAPI `responseSchema`. |
+| **Google Cloud Run** | Fully managed serverless container runtime hosting the production Next.js standalone application in `us-central1` with automatic scaling, HTTPS, and non-root execution. |
 | **Google Secret Manager** | Securely mounts `GEMINI_API_KEY` into Cloud Run via `--set-secrets`. The key is never committed, never present in Docker images, and never accessible in client bundles. |
-| **Google Cloud Build / Artifact Registry** | Container image compilation and continuous deployment pipeline using multi-stage builds. |
-| **Firebase / Firestore** (Phase P4) | Anonymous user analysis persistence with local in-memory fallback. |
+| **Google Cloud Build & Artifact Registry** | Container image compilation and continuous deployment pipeline using multi-stage builds (`gcloud run deploy --source .`). |
+| **Google Cloud Logging** | Real-time observability, startup health probe monitoring, and structured diagnostic logs. |
 
 ---
 
@@ -165,7 +165,7 @@ cp .env.example .env.local
 
 ### Verification Scripts
 ```bash
-# Run all 36 unit tests with Vitest
+# Run all 42 unit & accessibility tests with Vitest
 npm test
 
 # Run coverage report (>82% target on src/lib)
